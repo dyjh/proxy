@@ -1,26 +1,22 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
 	"net/http/httputil"
 	"net/url"
-
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// 目标服务器的 URL
-	target, _ := url.Parse("https://your-domain.com")
+	// 目标地址
+	targetURL, _ := url.Parse("http://your-new-domain.com")
 
 	// 创建反向代理
-	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 
-	// 创建一个 Gin 实例
 	r := gin.Default()
-
 	r.Any("/*any", func(c *gin.Context) {
+		// 将gin的Request和ResponseWriter对象转给httputil的ReverseProxy
 		proxy.ServeHTTP(c.Writer, c.Request)
 	})
-
-	// 运行在 8080 端口
-	r.Run(":8089")
+	r.Run()
 }
