@@ -1,53 +1,26 @@
 package main
 
 import (
-	"bytes"
-	"io/ioutil"
-	"net/http"
+	"net/http/httputil"
+	"net/url"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	router := gin.Default()
+	// 目标服务器的 URL
+	target, _ := url.Parse("https://your-domain.com")
 
-	router.POST("/endpoint", func(c *gin.Context) {
-		targetURL := "https://api.openai.com/v1/chat/completions" // 请替换为你的目标API URL
+	// 创建反向代理
+	proxy := httputil.NewSingleHostReverseProxy(target)
 
-		// 读取客户端发送过来的原始POST数据
-		postData, _ := ioutil.ReadAll(c.Request.Body)
+	// 创建一个 Gin 实例
+	r := gin.Default()
 
-		// 创建新的HTTP请求
-		req, err := http.NewRequest("POST", targetURL, bytes.NewBuffer(postData))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"message": err.Error(),
-			})
-			return
-		}
-
-		// 设置请求头
-		req.Header.Set("Authorization", "Bearer xxx")
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("OpenAI-Organization", "xxxxx")
-
-		// 发送HTTP请求
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"message": err.Error(),
-			})
-			return
-		}
-		defer resp.Body.Close()
-
-		// 读取响应数据
-		responseData, _ := ioutil.ReadAll(resp.Body)
-
-		// 输出响应数据
-		c.String(http.StatusOK, string(responseData))
+	r.Any("/*any", func(c *gin.Context) {
+		proxy.ServeHTTP(c.Writer, c.Request)
 	})
 
-	router.Run(":8089") // 默认在0.0.0.0:8080启动服务
+	// 运行在 8080 端口
+	r.Run(":8089")
 }
